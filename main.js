@@ -64,7 +64,7 @@
   setSession();
   if (reduce || !window.gsap || !window.ScrollTrigger) { signal(); addEventListener("scroll", () => { setLine(); setSession(); }, { passive: true }); return; }
   gsap.registerPlugin(ScrollTrigger);
-  if (window.Lenis) { const lenis = new Lenis({ lerp: .085 }); lenis.on("scroll", ScrollTrigger.update); gsap.ticker.add(t => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0);
+  if (window.Lenis) { const lenis = new Lenis({ lerp: .085 }); window.__lenis = lenis; lenis.on("scroll", ScrollTrigger.update); gsap.ticker.add(t => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0);
     document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener("click", ev => { const t = a.getAttribute("href"); if (t.length > 1) { ev.preventDefault(); lenis.scrollTo(t); } })); }
   ScrollTrigger.create({ start: 0, end: "max", onUpdate: () => { setLine(); setSession(); } });
   // hero
@@ -103,4 +103,27 @@
   gsap.from(".sig", { opacity: 0, x: -20, duration: 1.2, scrollTrigger: { trigger: ".sig", start: "top 92%" } });
   addEventListener("load", () => { ScrollTrigger.refresh(); drawLine(); setLine(); });
   ScrollTrigger.addEventListener("refresh", () => { drawLine(); setLine(); });
+})();
+
+/* ticker dropdown menu */
+(() => {
+  const nav = document.querySelector(".nav"), cta = nav && nav.querySelector(".cta"); if (!nav || !cta) return;
+  const items = [["premarket","Premarket","▲0.8%"],["profile","Profile","▲1.2%"],["open","The Open","▲2.4%"],["risk","Risk","▼0.3%"],["ventures","Holdings","▲1.6%"],["learning","Watchlist","▲0.5%"],["close","Contact","▼0.1%"]].filter(i => document.getElementById(i[0]));
+  const wrap = document.createElement("div"); wrap.className = "nr"; nav.insertBefore(wrap, cta);
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "tk-btn"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-controls", "tk-dd"); btn.setAttribute("aria-label", "Open section menu");
+  btn.innerHTML = '<span class="tk-ic" aria-hidden="true"><i></i><i></i></span><span class="tk-lb">Menu</span>';
+  const dd = document.createElement("nav"); dd.id = "tk-dd"; dd.className = "tk-dd"; dd.setAttribute("aria-label", "Sections");
+  dd.innerHTML = '<div class="tk-hd" aria-hidden="true"><span>Sections</span><span>Chg</span></div>' + items.map(([id, n, c], i) => `<a href="#${id}" data-tk="${id}" style="transition-delay:${i * 40}ms">${n}<b class="${c[0] === "▲" ? "up" : "dn"}">${c}</b></a>`).join("");
+  wrap.append(btn, cta, dd);
+  const links = dd.querySelectorAll("a");
+  const set = (o) => { dd.classList.toggle("open", o); btn.setAttribute("aria-expanded", String(o)); btn.setAttribute("aria-label", o ? "Close section menu" : "Open section menu");
+    links.forEach((a, i) => { a.tabIndex = o ? 0 : -1; a.style.transitionDelay = o ? `${60 + i * 40}ms, ${60 + i * 40}ms, 0ms, 0ms` : "0ms"; }); };
+  set(false);
+  btn.addEventListener("click", () => set(!dd.classList.contains("open")));
+  dd.addEventListener("click", ev => { const a = ev.target.closest("a[data-tk]"); if (!a) return; ev.preventDefault(); ev.stopImmediatePropagation();
+    const t = document.getElementById(a.dataset.tk); if (!t) return;
+    if (window.__lenis) window.__lenis.scrollTo(t, { duration: 1.6 }); else t.scrollIntoView({ behavior: "smooth" });
+    set(false); });
+  document.addEventListener("keydown", ev => { if (ev.key === "Escape" && dd.classList.contains("open")) { set(false); btn.focus(); } });
+  document.addEventListener("click", ev => { if (dd.classList.contains("open") && !wrap.contains(ev.target)) set(false); });
 })();
